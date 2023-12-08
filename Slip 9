@@ -1,0 +1,51 @@
+#include <stdio.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <stdlib.h>
+
+#define S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
+#define S_ISDIR(m) (((m) & S_IFMT) == S_IFDIR)
+#define S_ISLNK(m) (((m) & S_IFMT) == S_IFLNK)
+#define S_ISBLK(m) (((m) & S_IFMT) == S_IFBLK)
+#define S_ISCHR(m) (((m) & S_IFMT) == S_IFCHR)
+#define S_ISFIFO(m) (((m) & S_IFMT) == S_IFIFO)
+#define S_ISSOCK(m) (((m) & S_IFMT) == S_IFSOCK)
+
+void print_file_type(struct stat *statbuf) {
+  if (S_ISREG(statbuf->st_mode)) {
+    printf("Regular file\n");
+  } else if (S_ISDIR(statbuf->st_mode)) {
+    printf("Directory\n");
+  } else if (S_ISBLK(statbuf->st_mode)) {
+    printf("Block device\n");
+  } else if (S_ISCHR(statbuf->st_mode)) {
+    printf("Character device\n");
+  } else if (S_ISLNK(statbuf->st_mode)) {
+    printf("Symbolic link\n");
+  } else if (S_ISFIFO(statbuf->st_mode)) {
+    printf("FIFO (pipe)\n");
+  } else if (S_ISSOCK(statbuf->st_mode)) {
+    printf("Socket\n");
+  } else {
+    printf("Unknown file type\n");
+  }
+}
+
+int main(int argc, char *argv[]) {
+  if (argc != 2) {
+    fprintf(stderr, "Usage: %s <file_path>\n", argv[0]);
+    exit(1);
+  }
+
+  struct stat statbuf;
+
+  if (stat(argv[1], &statbuf) == -1) {
+    perror("stat");
+    exit(1);
+  }
+
+  printf("File type: ");
+  print_file_type(&statbuf);
+
+  return 0;
+}
