@@ -1,0 +1,70 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/wait.h>
+
+int main() {
+  int pipe_fds[2];
+  pid_t child_pid;
+  int status;
+
+  // Create an unnamed pipe
+  if (pipe(pipe_fds) == -1) {
+    perror("pipe");
+    exit(1);
+  }
+
+  // Create a child process
+  child_pid = fork();
+  if (child_pid == -1) {
+    perror("fork");
+    exit(1);
+  }
+
+  if (child_pid == 0) {
+    // Child process
+    // Close the read end of the pipe
+    close(pipe_fds[0]);
+
+    // Duplicate the write end of the pipe to standard output
+    if (dup2(pipe_fds[1], STDOUT_FILENO) == -1) {
+      perror("dup2");
+      exit(1);
+    }
+
+    // Close the write end of the pipe (original)
+    close(pipe_fds[1]);
+
+    // Execute the "ls -l" command
+    execlp("/bin/ls", "ls", "-l", NULL);
+    perror("execlp");
+    exit(1);
+  } else {
+    // Parent process
+    // Close the write end of the pipe
+    close(pipe_fds[1]);
+
+    // Open a pipe for reading the output of "ls -l"
+    FILE *fp = fdopen(pipe_fds[0], "r");
+
+    // Initialize line counter
+    int line_count = 0;
+
+    // Read and count lines from the pipe
+    char buffer[1024];
+    while (fgets(buffer, sizeof(buffer), fp) != NULL) {
+      line_count++;
+    }
+
+    // Close the read end of the pipe
+    fclose(fp);
+
+    // Wait for the child process to terminate
+    wait(&status);
+
+    // Print the number of lines
+    printf("Number of files: %d\n", line_count);
+  }
+
+  return 0;
+}
