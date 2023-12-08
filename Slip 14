@@ -1,0 +1,67 @@
+#include <stdio.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <time.h>
+
+int main(int argc, char *argv[]) {
+  if (argc != 2) {
+    fprintf(stderr, "Usage: %s <file_path>\n", argv[0]);
+    exit(1);
+  }
+
+  struct stat file_stat;
+
+  if (stat(argv[1], &file_stat) == -1) {
+    perror("stat");
+    exit(1);
+  }
+
+  // Inode number
+  printf("Inode number: %ld\n", file_stat.st_ino);
+
+  // Number of hard links
+  printf("Number of hard links: %ld\n", file_stat.st_nlink);
+
+  // File permissions
+  printf("File permissions: ");
+  if (S_ISREG(file_stat.st_mode)) printf("-");
+  else if (S_ISDIR(file_stat.st_mode)) printf("d");
+  else if (S_ISLNK(file_stat.st_mode)) printf("l");
+  else if (S_ISBLK(file_stat.st_mode)) printf("b");
+  else if (S_ISCHR(file_stat.st_mode)) printf("c");
+  else if (S_ISFIFO(file_stat.st_mode)) printf("p");
+  else if (S_ISSOCK(file_stat.st_mode)) printf("s");
+
+  if (file_stat.st_mode & S_IRUSR) printf("r");
+  else printf("-");
+  if (file_stat.st_mode & S_IWUSR) printf("w");
+  else printf("-");
+  if (file_stat.st_mode & S_IXUSR) printf("x");
+  else printf("-");
+
+  if (file_stat.st_mode & S_IRGRP) printf("r");
+  else printf("-");
+  if (file_stat.st_mode & S_IWGRP) printf("w");
+  else printf("-");
+  if (file_stat.st_mode & S_IXGRP) printf("x");
+  else printf("-");
+
+  if (file_stat.st_mode & S_IROTH) printf("r");
+  else printf("-");
+  if (file_stat.st_mode & S_IWOTH) printf("w");
+  else printf("-");
+  if (file_stat.st_mode & S_IXOTH) printf("x");
+  else printf("-");
+  printf("\n");
+
+  // File size
+  printf("File size: %ld bytes\n", file_stat.st_size);
+
+  // File access time
+  printf("File access time: %s", ctime(&file_stat.st_atime));
+
+  // File modification time
+  printf("File modification time: %s", ctime(&file_stat.st_mtime));
+
+  return 0;
+}
