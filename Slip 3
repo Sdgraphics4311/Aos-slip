@@ -1,0 +1,70 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <signal.h>
+#include <sys/wait.h>
+
+#define TIMEOUT 5 // Timeout in seconds
+
+void sigchld_handler(int signum) {
+  int status;
+  pid_t child_pid;
+
+  // Wait for child process to terminate
+  child_pid = wait(&status);
+
+  if (WIFEXITED(status)) {
+    printf("Child process %d exited with status %d\n", child_pid, WEXITSTATUS(status));
+  } else if (WIFSIGNALED(status)) {
+    printf("Child process %d terminated by signal %d\n", child_pid, WTERMSIG(status));
+  }
+}
+
+void sigalrm_handler(int signum) {
+  printf("Child process timed out after %d seconds. Terminating...\n", TIMEOUT);
+
+  // Kill child process
+  kill(child_pid, SIGKILL);
+}
+
+int main() {
+  pid_t child_pid;
+  char command[1024];
+
+  // Get command to execute
+  printf("Enter command to execute: ");
+  fgets(command, sizeof(command), stdin);
+
+  // Remove newline character from command
+  command[strcspn(command, "\n")] = '\0';
+
+  // Create child process
+  child_pid = fork();
+
+  if (child_pid == -1) {
+    perror("fork");
+    exit(1);
+  } else if (child_pid == 0) {
+    // Child process
+    execlp("/bin/sh", "sh", "-c", command, NULL);
+    perror("execlp");
+    exit(1);
+  } else {
+    // Parent process
+    // Set signal handler for SIGCHLD
+    signal(SIGCHLD, sigchld_handler);
+
+    // Set signal handler for SIGALRM
+    signal(SIGALRM, sigalrm_handler);
+
+    // Set timer for child process execution
+    alarm(TIMEOUT);
+
+    // Wait for child process to terminate
+    waitpid(child_pid, NULL, 0);
+
+    printf("Child process terminated.\n");
+  }
+
+  return 0;
+}
