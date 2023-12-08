@@ -1,0 +1,72 @@
+#include <stdio.h>
+#include <signal.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+#define INTERVAL 3 // Interval between signals in seconds
+#define TOTAL_TIME 15 // Total execution time in seconds
+
+void sighup(int signum) {
+  signal(SIGHUP, sighup); // Reset signal handler
+  printf("Child process: I have received a SIGHUP\n");
+}
+
+void sigint(int signum) {
+  signal(SIGINT, sigint); // Reset signal handler
+  printf("Child process: I have received a SIGINT\n");
+}
+
+void sigquit(int signum) {
+  printf("My Papa has Killed me!!!\n");
+  exit(0);
+}
+
+int main() {
+  pid_t child_pid;
+  int time_elapsed = 0;
+
+  // Create child process
+  child_pid = fork();
+
+  if (child_pid == -1) {
+    perror("fork");
+    exit(1);
+  }
+
+  if (child_pid == 0) {
+    // Child process
+    // Set signal handlers
+    signal(SIGHUP, sighup);
+    signal(SIGINT, sigint);
+    signal(SIGQUIT, sigquit);
+
+    // Loop until SIGQUIT received
+    while (1) {
+      sleep(1);
+    }
+  } else {
+    // Parent process
+    // Send signals every 3 seconds
+    while (time_elapsed < TOTAL_TIME) {
+      sleep(INTERVAL);
+      time_elapsed += INTERVAL;
+
+      if (time_elapsed < TOTAL_TIME) {
+        // Send SIGHUP or SIGINT randomly
+        if (rand() % 2) {
+          kill(child_pid, SIGHUP);
+        } else {
+          kill(child_pid, SIGINT);
+        }
+      } else {
+        // Send SIGQUIT after 15 seconds
+        kill(child_pid, SIGQUIT);
+      }
+    }
+
+    // Wait for child process to terminate
+    wait(NULL);
+  }
+
+  return 0;
+}
