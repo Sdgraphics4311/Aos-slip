@@ -1,0 +1,28 @@
+#include <stdio.h>
+#include <signal.h>
+
+static int caught_sigint = 0; // Flag to track first SIGINT
+
+void sigint_handler(int signum) {
+  if (!caught_sigint) {
+    printf("Caught SIGINT (Ctrl+C) for the first time.\n");
+    caught_sigint = 1;
+  } else {
+    printf("Exiting...\n");
+    exit(0);
+  }
+}
+
+int main() {
+  // Set signal handler for SIGINT
+  signal(SIGINT, sigint_handler);
+
+  printf("Press Ctrl+C once to warn and twice to exit.\n");
+
+  // Infinite loop to wait for signals
+  while (1) {
+    sleep(1);
+  }
+
+  return 0;
+}
