@@ -1,0 +1,84 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <signal.h>
+
+// Function to handle SIGINT and SIGQUIT signals
+void handle_signal(int sig) {
+  // Do nothing, effectively ignoring the signal
+}
+
+int main() {
+  // Create a pipe
+  int pipe_fd[2];
+  if (pipe(pipe_fd) < 0) {
+    perror("pipe");
+    exit(1);
+  }
+
+  // Block SIGINT and SIGQUIT signals
+  signal(SIGINT, handle_signal);
+  signal(SIGQUIT, handle_signal);
+
+  // Create a child process for `ls`
+  pid_t pid1 = fork();
+  if (pid1 < 0) {
+    perror("fork");
+    exit(1);
+  }
+
+  // Child process for `ls`
+  if (pid1 == 0) {
+    // Close read end of the pipe
+    close(pipe_fd[0]);
+
+    // Duplicate write end of the pipe to standard output
+    dup2(pipe_fd[1], STDOUT_FILENO);
+    close(pipe_fd[1]);
+
+    // Execute `ls -l`
+    execlp("ls", "ls", "-l", NULL);
+    perror("execlp");
+    exit(1);
+  }
+
+  // Close write end of the pipe
+  close(pipe_fd[1]);
+
+  // Create a child process for `wc`
+  pid_t pid2 = fork();
+  if (pid2 < 0) {
+    perror("fork");
+    exit(1);
+  }
+
+  // Child process for `wc`
+  if (pid2 == 0) {
+    // Close write end of the pipe
+    close(pipe_fd[1]);
+
+    // Duplicate read end of the pipe to standard input
+    dup2(pipe_fd[0], STDIN_FILENO);
+    close(pipe_fd[0]);
+
+    // Execute `wc -l`
+    execlp("wc", "wc", "-l", NULL);
+    perror("execlp");
+    exit(1);
+  }
+
+  // Close both ends of the pipe in parent process
+  close(pipe_fd[0]);
+  close(pipe_fd[1]);
+
+  // Wait for both child processes to finish
+  waitpid(pid1, NULL, 0);
+  waitpid(pid2, NULL, 0);
+
+  // Restore default signal handlers
+  signal(SIGINT, SIG_DFL);
+  signal(SIGQUIT, SIG_DFL);
+
+  return 0;
+}
