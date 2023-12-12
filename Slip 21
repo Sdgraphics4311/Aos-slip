@@ -54,3 +54,39 @@ int main(int argc, char *argv[]) {
 
   return 0;
 }
+
+Q1-
+#include <stdio.h>
+#include <stdlib.h>
+#include <dirent.h>
+
+int main() {
+    DIR *directory;
+    struct dirent *entry;
+    int fileCount = 0;
+
+    // Open the current directory
+    directory = opendir(".");
+
+    if (directory == NULL) {
+        perror("Unable to open directory");
+        exit(EXIT_FAILURE);
+    }
+
+    // Read directory entries
+    while ((entry = readdir(directory)) != NULL) {
+        // Skip "." and ".." entries
+        if (entry->d_type == DT_REG) {
+            printf("%s\n", entry->d_name);
+            fileCount++;
+        }
+    }
+
+    // Close the directory
+    closedir(directory);
+
+    // Display the total number of files
+    printf("\nTotal number of files: %d\n", fileCount);
+
+    return 0;
+}
